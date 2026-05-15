@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru-RU" xml:lang="ru-RU">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>Эскалация привилегий. Shatter attack.</title>
+  <style type="text/css">
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+  <link rel="stylesheet" type="text/css" media="screen, projection, print"
+    href="https://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+  <script src="https://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
+    charset="utf-8" type="text/javascript"></script>
+</head>
+<body>
+<div class="slide titlepage">
+  <h1 class="title">Эскалация привилегий. Shatter attack.</h1>
+  <p class="subtitle">Доклад</p>
+  <p class="author">
+<p>Выполнила: студентка группы НКАбд-04-24<br />
+Подхалюзина Виолетта Михайловна<br />
+Преподаватель: д.ф.-м.н., проф. Кулябов Д. С.</p>
+  </p>
+  <p class="institute">
+Российский университет дружбы народов им. П. Лумумбы
+  </p>
+  <p class="date">15 мая 2026 г.</p>
+</div>
+<div class="slide" id="TOC">
+
+</div>
+<div id="информация" class="title-slide slide section level1">
+<h1>1. Информация</h1>
+
+</div>
+<div id="докладчик" class="slide section level2">
+<h1>Докладчик</h1>
+<div class="columns">
+<div class="column" style="width:50%;">
+<p>Подхалюзина Виолетта Михайловна<br />
+студентка группы НКАбд-04-24<br />
+РУДН им. П. Лумумбы<br />
+Студбилет: 1132246761</p>
+</div><div class="column" style="width:50%;">
+<p><img src="5.jpg" style="width:70.0%" /></p>
+</div>
+</div>
+</div>
+
+<div id="вводная-часть" class="title-slide slide section level1">
+<h1>2. Вводная часть</h1>
+
+</div>
+<div id="актуальность-темы" class="slide section level2">
+<h1>Актуальность темы</h1>
+<p><strong>ОС как фундамент:</strong> Уязвимости ОС сводят на нет
+внешние периметры безопасности <span class="citation">(<em>ГОСТ Р
+50922-2006. Защита информации. Основные термины и определения</em> 2007
+г.)</span>.<br />
+<strong>Эскалация привилегий:</strong> Критически важная фаза любой
+APT-атаки.<br />
+<strong>Shatter attack:</strong> Уязвимость из-за отсутствия мандатного
+контроля в графической подсистеме.<br />
+<strong>Значимость:</strong> Понимание векторов атак на IPC необходимо
+для построения надежных систем.<br />
+</p>
+</div>
+<div id="цели-и-задачи-работы" class="slide section level2">
+<h1>Цели и задачи работы</h1>
+<p><strong>Цель:</strong> Изучить архитектурную уязвимость оконной
+подсистемы ОС Windows и механизмы защиты.</p>
+<p><strong>Задачи:</strong></p>
+<p>Рассмотреть эскалацию привилегий и изоляцию процессов.
+Проанализировать архитектуру Win32 API. Разобрать алгоритм классической
+Shatter-атаки. Изучить механизмы защиты (Session 0 Isolation,
+MIC/UIPI).</p>
+</div>
+
+<div id="основная-часть" class="title-slide slide section level1">
+<h1>3. Основная часть</h1>
+
+</div>
+<div id="основы-эскалации-привилегий" class="slide section level2">
+<h1>Основы эскалации привилегий</h1>
+<p><strong>Эскалация привилегий</strong> — несанкционированное повышение
+прав доступа субъектом <span class="citation">(Сухомлин 2021
+г.)</span>.</p>
+<p><strong>Основные виды:</strong></p>
+<p><strong>Вертикальная:</strong> Получение прав админа или ядра
+(<code>SYSTEM</code>) обычным юзером.</p>
+<p><strong>Горизонтальная:</strong> Получение прав другого юзера того же
+уровня (например, кража сессий).</p>
+</div>
+<div id="изоляция-и-кольца-защиты" class="slide section level2">
+<h1>Изоляция и кольца защиты</h1>
+<p>Основа защиты ОС — аппаратные кольца (Protection Rings) <span
+class="citation">(Кулябов и Королькова 2018 г.)</span>.</p>
+<p><strong>Ring 0 (Ядро):</strong> Полный доступ к железу (службы и
+драйверы).</p>
+<p><strong>Ring 3 (User-mode):</strong> Изолированные приложения.</p>
+<p>Переход между ними идет строго через системные вызовы (см.
+рис. 1).</p>
+</div>
+<div id="схема-аппаратные-кольца" class="slide section level2">
+<h1>Схема: аппаратные кольца</h1>
+<div class="float" id="fig:rings">
+<img src="1.jpg" style="width:50.0%"
+alt="Рис. 1: Архитектура колец защиты" />
+<div class="figcaption">Рис. 1: Архитектура колец защиты</div>
+</div>
+</div>
+<div id="обмен-сообщениями-win32-api" class="slide section level2">
+<h1>Обмен сообщениями (Win32 API)</h1>
+<p>Графический интерфейс управляется событиями <span
+class="citation">(Руссинович и др. 2018 г.)</span>.</p>
+<p>Общение окон идет через вызовы <code>SendMessage</code> и
+<code>PostMessage</code>.</p>
+<p><strong>Фундаментальная проблема:</strong> Старые ОС не проверяли
+уровень привилегий отправителя к получателю на одном рабочем столе.</p>
+</div>
+<div id="механизм-shatter-атаки" class="slide section level2">
+<h1>Механизм Shatter-атаки</h1>
+<p>Атака позволяет выполнить произвольный код с правами
+<code>SYSTEM</code>.</p>
+<p><strong>Этапы реализации:</strong></p>
+<p><strong>Разведка:</strong> Поиск окна системной службы.</p>
+<p><strong>Внедрение:</strong> Загрузка шелл-кода в процесс-жертву
+(через <code>WM_SETTEXT</code>).</p>
+<p><strong>Триггер:</strong> Отправка сообщения с адресом шелл-кода
+(например, <code>WM_TIMER</code>).</p>
+<p><strong>Выполнение:</strong> Привилегированный процесс передает
+управление коду.</p>
+</div>
+<div id="схема-реализация-shatter-атаки" class="slide section level2">
+<h1>Схема: реализация Shatter-атаки</h1>
+<div class="float" id="fig:shatter">
+<img src="2.jpg" style="width:75.0%"
+alt="Рис. 2: Схема передачи сообщений и перехвата потока" />
+<div class="figcaption">Рис. 2: Схема передачи сообщений и перехвата
+потока</div>
+</div>
+</div>
+<div id="защита-изоляция-нулевого-сеанса" class="slide section level2">
+<h1>Защита: Изоляция нулевого сеанса</h1>
+<p><strong>Session 0 Isolation (с Windows Vista)</strong></p>
+<p><strong>Проблема:</strong> Службы и первый юзер сидели в общем Сеансе
+0.</p>
+<p><strong>Решение:</strong> Сеанс 0 жестко изолирован <em>только</em>
+для системных служб.</p>
+<p><strong>Итог:</strong> Пользовательские процессы физически не видят
+окна системных служб (см. рис. 3).</p>
+</div>
+<div id="схема-разделение-сеансов" class="slide section level2">
+<h1>Схема: разделение сеансов</h1>
+<div class="float" id="fig:session0">
+<img src="3.jpg" style="width:50.0%"
+alt="Рис. 3: Механизм Session 0 Isolation" />
+<div class="figcaption">Рис. 3: Механизм Session 0 Isolation</div>
+</div>
+</div>
+<div id="защита-uipi-и-мандатный-контроль" class="slide section level2">
+<h1>Защита: UIPI и мандатный контроль</h1>
+<p><strong>User Interface Privilege Isolation (UIPI)</strong></p>
+<p><em>(Надстройка над механизмом MIC <span class="citation">(Малюк 2020
+г.)</span>)</em></p>
+<p><strong>Уровни целостности:</strong> Low, Medium, High, System.</p>
+<p><strong>Правило:</strong> Процесс с низким уровнем не может слать
+сообщения окну с высоким.</p>
+<p><strong>Итог:</strong> Блокировка Shatter-атак внутри одного сеанса
+(см. рис. 4).</p>
+</div>
+<div id="схема-механизм-uipi" class="slide section level2">
+<h1>Схема: механизм UIPI</h1>
+<div class="float" id="fig:uipi">
+<img src="4.jpg" style="width:55.0%"
+alt="Рис. 4: Механизм UIPI и фильтрация сообщений" />
+<div class="figcaption">Рис. 4: Механизм UIPI и фильтрация
+сообщений</div>
+</div>
+</div>
+
+<div id="заключение" class="title-slide slide section level1">
+<h1>4. Заключение</h1>
+
+</div>
+<div id="вывод" class="slide section level2">
+<h1>Вывод</h1>
+<p>Недочеты в механизмах IPC могут привести к полной компрометации ядра
+(Ring 0). Классическая Shatter-атака доказала слабость дискреционного
+подхода (DAC). Современная защита опирается на строгий мандатный
+контроль (MAC) <span class="citation">(Шаньгин 2022 г.)</span>. Надежная
+безопасность требует комплексной изоляции на всех уровнях.</p>
+</div>
+<div id="список-литературы" class="slide section level2">
+<h1>Список литературы</h1>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-gost50922" class="csl-entry">
+<em>ГОСТ Р 50922-2006. Защита информации. Основные термины и
+определения</em>. 2007 г. Стандартинформ.
+</div>
+<div id="ref-kulyabov2018" class="csl-entry">
+Кулябов, Д. С., и А. В. Королькова. 2018 г. <em>Архитектура и принципы
+построения операционных систем: Учебное пособие</em>. РУДН.
+</div>
+<div id="ref-malyuk2020" class="csl-entry">
+Малюк, А. А. 2020 г. <em>Информационная безопасность: концептуальные и
+методологические основы защиты информации. Учебное пособие</em>. Горячая
+линия-Телеком.
+</div>
+<div id="ref-russinovich2018" class="csl-entry">
+Руссинович, М., Д. Соломон, и А. Ионеску. 2018 г. <em>Внутреннее
+устройство Windows (Windows Internals), 7-е издание. Часть 1</em>.
+Питер.
+</div>
+<div id="ref-sukhomlin2021" class="csl-entry">
+Сухомлин, В. А. 2021 г. <em>Введение в анализ информационной
+безопасности. Теоретико-методологические основы</em>. Горячая линия -
+Телеком.
+</div>
+<div id="ref-shangin2022" class="csl-entry">
+Шаньгин, В. Ф. 2022 г. <em>Информационная безопасность и защита
+информации в компьютерных системах и сетях</em>. ИД ФОРУМ: НИЦ ИНФРА-М.
+</div>
+</div>
+</div>
+</body>
+</html>
